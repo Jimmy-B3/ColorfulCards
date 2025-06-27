@@ -1,213 +1,223 @@
+-- Note to original developer: Keep the enhancements in one atlas texture. I promise, it will make life a lot easier and saves space.
+-- Also, touched up the text a bit and added a warning for the Purple Enhancement.
+
 --the mod icon
-SMODS.Atlas {
+SMODS.Atlas{
     key = 'modicon',
     path = 'zmodicon.png',
     px = 34,
     py = 34
 }
 
+-- Jimmy-B3: test joker lol
+-- Arya: I got no clue why we're keeping this, but I'm sure you got a reason. 
+SMODS.Atlas{
+    key = 'TestJoker',
+    path = 'testjoker.png',
+    px = 71,
+    py = 95
+}
+
+SMODS.Joker{
+    key = "test",
+    loc_txt = {
+        name = 'TEST',
+        text = {
+            'this is just a joker for testing'
+        }
+    },
+        rarity = 4,
+        cost = -1,
+        blueprint_compat = false,
+        eternal_compat = false,
+        perishable_compat = false,
+        discovered = true,
+    atlas = 'TestJoker',
+    pos = {x = 0, y = 0},
+    config = { 
+        extra = {
+        Xmult = 2
+        }
+    },
+}
+
 --Red
-SMODS.Atlas {
+SMODS.Atlas{
     key = 'colors',
     path = 'colorsprites.png',
     px = 71,
     py = 95
 }
-SMODS.Enhancement {
-    key = 'red',
-    loc_txt = {
-        name = 'Red',
-        text = {
-            '{X:mult,C:white}X#1#{} mult'
-        }
-    },
-    atlas = 'colors',
-    pos = { x = 0, y = 0 },
-    config = {
-        x_mult = 1.5
-    },
-    loc_vars = function(self, info_queue, card)
-        return { vars = { card.ability.x_mult } }
-    end
+
+SMODS.Enhancement{
+ key = 'red',
+ loc_txt = {
+    name = 'Red',
+    text = {
+        '{X:mult,C:white}X#1#{} {C:mult}Mult{}'
+    }
+ },
+ atlas = 'colors',
+ pos = { x = 0, y = 0 },
+ config = {
+  x_mult = 1.5
+ },
+ loc_vars = function(self, info_queue, card)
+  return { vars = { card.ability.x_mult } }
+ end
 }
 
 --Orange
-SMODS.Enhancement {
-    key = 'orange',
-    loc_txt = {
-        name = 'Orange',
-        text = {
-            'Upgrade level of played',
-            '{C:attention}poker hand{} upon scoring'
-        }
-    },
-    atlas = 'colors',
-    pos = { x = 1, y = 0 },
-    calculate = function(self, card, context)
-        if context.final_scoring_step and context.cardarea == G.play then
-            return {
-                level_up = true
-            }
-        end
-    end
+SMODS.Enhancement{
+ key = 'orange',
+ loc_txt = {
+    name = 'Orange',
+    text = {
+        '{C:attention}Upgrade{} level of played',
+        '{C:attention}poker hand{} upon {C:attention}scoring{}'
+   }
+ },
+atlas = 'colors',
+	pos = { x = 1, y = 0 },
+	calculate = function(self, card, context)
+		if context.final_scoring_step and context.cardarea == G.play then
+			return {
+				level_up = true
+			}
+		end
+	end
 }
 
 --Yellow
-SMODS.Enhancement {
-    key = 'yellow',
-    loc_txt = {
-        name = 'Yellow',
-        text = {
-            '{X:money,C:white}X1.2{} dollars'
-        }
-    },
-    atlas = 'colors',
-    pos = { x = 2, y = 0 },
-    config = { extra = { dollars = 1.2 } },
-    loc_vars = function(self, info_queue, card)
-        return { vars = { card.ability.extra.dollars } }
-    end,
-    calculate = function(self, card, context)
-        if context.main_scoring then
-            return {
-                dollars = ((G.GAME.dollars * card.ability.extra.dollars) - G.GAME.dollars)
-            }
-        end
-    end
+SMODS.Enhancement{
+ key = 'yellow',
+ loc_txt = {
+    name = 'Yellow',
+    text = {
+        '{X:money,C:white}X1.2{} Dollars when {C:attention}scored{}.'
+    }
+ },
+atlas = 'colors',
+	pos = { x = 2, y = 0 },
+	config = { extra = { dollars = 1.2 } },
+	loc_vars = function(self, info_queue, card)
+		return { vars = { card.ability.extra.dollars } }
+	end,
+	calculate = function(self, card, context)
+		if context.main_scoring and context.cardarea == G.play then
+			return {
+                  dollars = ((G.GAME.dollars * card.ability.extra.dollars) - G.GAME.dollars)
+      }
+		end
+	end
 }
 
 --Green
-SMODS.Enhancement {
-    key = 'green',
-    loc_txt = {
-        name = 'Green',
-        text = {
-            '{C:green}1 in 4{} chance to add',
-            'a random card with',
-            'an {C:edition}edition{} to your deck'
-        }
-    },
-    atlas = 'colors',
-    pos = { x = 0, y = 1 },
-    config = { extra = { odds = 4 } },
-    loc_vars = function(self, info_queue, card)
-        return { vars = { G.GAME.probabilities.normal } }
-    end,
-    calculate = function(self, card, context)
-        if context.main_scoring and context.cardarea == G.play and (pseudorandom('colr_green') < G.GAME.probabilities.normal / card.ability.extra.odds) then
-            local _card = create_playing_card({
-                front = pseudorandom_element(G.P_CARDS, pseudoseed('colr_green')),
-                center = G.P_CENTERS.c_base
-            }, G.discard, true, nil, { G.C.SECONDARY_SET.Enhanced }, true)
-            _card:set_edition(poll_edition("colr_green", nil, nil, true))
-            return {
-                func = function()
-                    G.E_MANAGER:add_event(Event({
-                        func = function()
-                            G.hand:emplace(_card)
-                            _card:start_materialize()
-                            G.GAME.blind:debuff_card(_card)
-                            G.hand:sort()
-                            return true
-                        end
-                    }))
-                    SMODS.calculate_context({ playing_card_added = true, cards = { _card } })
-                end
-            }
-        end
-    end
+SMODS.Enhancement{
+ key = 'green',
+ loc_txt = {
+    name = 'Green',
+    text = {
+        '{C:green}1 in 4{} chance to add',
+        'a random card with',
+        'an {C:attention}Edition{} to your deck.'
+    }
+ },
+atlas = 'colors',
+	pos = { x = 0, y = 1 },
+	config = { extra = { odds = 4 } },
+	loc_vars = function(self, info_queue, card)
+		return { vars = { G.GAME.probabilities.normal } }
+	end,
+	calculate = function(self, card, context)
+		if context.main_scoring and context.cardarea == G.play and (pseudorandom('colr_green') < G.GAME.probabilities.normal / card.ability.extra.odds) then
+			local _card = create_playing_card ({
+				front = pseudorandom_element(G.P_CARDS, pseudoseed('colr_green')),
+				center = G.P_CENTERS.c_base
+			}, G.discard, true, nil, {G.C.SECONDARY_SET.Enhanced}, true)
+			_card:set_edition(poll_edition("colr_green", nil, nil, true))
+			return {
+				func = function()
+					G.E_MANAGER:add_event(Event({
+						func = function()
+							G.hand:emplace(_card)
+							_card:start_materialize()
+							G.GAME.blind:debuff_card(_card)
+							G.hand:sort()
+							return true
+							end
+						}))
+						SMODS.calculate_context({ playing_card_added = true, cards = { _card } })
+				end
+			}
+		end
+	end
 }
 
 --Blue
-SMODS.Enhancement {
-    key = 'blue',
-    loc_txt = {
-        name = 'Blue',
-        text = {
-            '{X:chips,C:white}X#1#{} chips'
-        }
-    },
-    atlas = 'colors',
-    pos = { x = 1, y = 1 },
-    config = {
-        x_chips = 2
-    },
-    loc_vars = function(self, info_queue, card)
-        return { vars = { card.ability.x_chips } }
-    end
+SMODS.Enhancement{
+ key = 'blue',
+ loc_txt = {
+    name = 'Blue',
+    text = {
+        '{X:chips,C:white}X#1#{} {C:chips}Chips{}'
+    }
+ },
+ atlas = 'colors',
+ pos = { x = 1, y = 1 },
+ config = {
+  x_chips = 2
+ },
+ loc_vars = function(self, info_queue, card)
+  return { vars = { card.ability.x_chips } }
+ end
 }
 
 --Purple
-SMODS.Enhancement {
-    key = 'purple',
-    loc_txt = {
-        name = 'Purple',
-        text = {
-            'Give a random card',
-            'held in hand',
-            '{C:purple}purple seal{} upon scoring'
-        }
-    },
-    atlas = 'colors',
-    pos = { x = 2, y = 1 },
-    config = { extra = { seal = "Purple", random = 1 } },
-    loc_vars = function(self, info_queue, card)
-        info_queue[#info_queue + 1] = G.P_SEALS[card.ability.extra.seal]
-        return { vars = { card.ability.extra.random } }
-    end,
-    calculate = function(self, card, context)
-        local card_to_seal = pseudorandom_element(G.hand.cards, 'random_purple')
-        if context.main_scoring then
-            G.E_MANAGER:add_event(Event({
-                trigger = 'after',
-                delay = 0.4,
-                func = function()
-                    play_sound('tarot1')
-                    card_to_seal:set_seal(card.ability.extra.seal, nil, true)
-                    card_to_seal:juice_up(0.3, 0.5)
-                    return true
-                end
-            }))
-        end
-    end
+SMODS.Enhancement{
+ key = 'purple',
+ loc_txt = {
+    name = 'Purple',
+    text = {
+        'Gives a {C:attention}random card{}',
+        '{C:attention}held in hand{} a',
+        '{C:purple}Purple Seal{} upon {C:attention}scoring{}',
+        '{C:inactive}Requires a card in hand to work,{}', 
+        '{C:inactive}otherwise a crash occurs!{}'
+    }
+ },
+atlas = 'colors',
+	pos = { x = 2, y = 1 },
+	config = { extra = { seal = "Purple", random = 1 } },
+	loc_vars = function(self, info_queue, card)
+		info_queue[#info_queue + 1] = G.P_SEALS[card.ability.extra.seal]
+		return { vars = { card.ability.extra.random } }
+	end,
+	calculate = function(self, card, context)
+		local card_to_seal = pseudorandom_element(G.hand.cards, 'random_purple')
+		if context.main_scoring and context.cardarea == G.play then
+			G.E_MANAGER:add_event(Event({
+				trigger = 'after',
+				delay = 0.4,
+				func = function()
+					play_sound('tarot1')
+					card_to_seal:set_seal(card.ability.extra.seal, nil, true)
+					card_to_seal:juice_up(0.3, 0.5)
+					return true
+				end
+			}))
+		end
+	end
 }
 
---Pink
-SMODS.Enhancement {
-    key = 'pink',
-    loc_txt = {
-        name = 'Pink',
-        text = {
-            '{X:mult,C:white}X2{} mult and {X:chips,C:white}X2{} chips,',
-            'but only on the {C:attention}boss blind{}'
-        }
-    },
-    atlas = 'colors',
-    pos = { x = 0, y = 2 },
-    config = {
-       extra = {
-        x_chips = 2,
-        x_mult = 2
-       },
-    },
-    loc_vars = function(self, info_queue, card)
-        return { vars = { card.ability.x_chips, card.ability.x_mult } }
-    end,
-    calculate = function(self, card, context)
-        if context.main_scoring and context.cardarea == G.play and G.GAME.blind.boss then
-            return { xchips = card.ability.extra.x_chips, xmult = card.ability.extra.x_mult }
-        end
-    end
-}
-
+-- Black Enhancement via Arya
 SMODS.Enhancement {
     key = "black",
     loc_txt = {
         name = "Black",
         text = {
             "If applied on a {C:spades}Spade{} or {C:clubs}Club{} card: {X:chips,C:white}x3{} {C:chips}Chips{}",
-            "If applied on a {C:hearts}Heart{} or {C:diamonds}Diamond{} card: {C:chips}+30 Chips{}",
-            "({C:enhanced}Coded by: Wildcard Arya{})"
+            "If applied on a {C:hearts}Heart{} or {C:diamonds}Diamond{} card: {C:chips}+30 Chips{}"
         }
     },
     atlas = 'colors',
@@ -238,8 +248,7 @@ SMODS.Enhancement {
         name = "Brown",
         text = {
             "Summons a random {C:tarot}Tarot{}",
-            "card when {C:attention}scored{}",
-            "({C:enhanced}Coded by: Wildcard Arya{})"
+            "card when {C:attention}scored{}"
         }
     },
     atlas = "colors",
@@ -255,392 +264,409 @@ SMODS.Enhancement {
     end
 }
 
---Painted Joker
+-- Painted Joker coded in via Arya
 SMODS.Atlas {
-    key = 'PaintedJoker',
+    key = 'painted_joker',
     path = 'paintedjoker.png',
     px = 71,
     py = 95
 }
+
 SMODS.Joker {
-    key = "PaintedJoker",
+    key = "painted_joker",
     loc_txt = {
         name = 'Painted Joker',
         text = {
-            '{C:mult}+3{} mult for every {C:red}color{}',
-            'enhanced card scored'
+            "{C:mult}+3 Mult{} when any card", 
+            "with a {C:attention}Paint{} enhancement is played.",
         }
     },
     rarity = 2,
-    cost = 5,
-    discovered = true,
+    cost = 6,
     blueprint_compat = true,
-    eternal_compat = true,
-    perishable_compat = true,
-    atlas = 'PaintedJoker',
+    atlas = 'painted_joker',
     pos = { x = 0, y = 0 },
     config = { extra = { mult = 3 } },
     loc_vars = function(self, info_queue, card)
-        return { vars = { card.ability.extra.mult } }
+      return { vars = { card.ability.extra.mult } }
     end,
     calculate = function(self, card, context)
-        if context.individual and context.cardarea == G.play and (SMODS.has_enhancement(context.other_card, 'm_colr_red') or SMODS.has_enhancement(context.other_card, 'm_colr_orange') or SMODS.has_enhancement(context.other_card, 'm_colr_yellow') or SMODS.has_enhancement(context.other_card, 'm_colr_green') or SMODS.has_enhancement(context.other_card, 'm_colr_blue') or SMODS.has_enhancement(context.other_card, 'm_colr_purple') or SMODS.has_enhancement(context.other_card, 'm_colr_pink') or SMODS.has_enhancement(context.other_card, 'm_colr_black') or SMODS.has_enhancement(context.other_card, 'm_colr_brown')) then
-            return {
-                mult = card.ability.extra.mult
-            }
+        if context.individual and context.cardarea == G.play then
+            if SMODS.has_enhancement(context.other_card, "m_colr_red") or SMODS.has_enhancement(context.other_card, "m_colr_orange") or SMODS.has_enhancement(context.other_card, "m_colr_yellow") or SMODS.has_enhancement(context.other_card, "m_colr_green") or SMODS.has_enhancement(context.other_card, "m_colr_blue") or SMODS.has_enhancement(context.other_card, "m_colr_purple") or SMODS.has_enhancement(context.other_card, "m_colr_pink") or SMODS.has_enhancement(context.other_card, "m_colr_black") or SMODS.has_enhancement(context.other_card, "m_colr_brown") then -- Arya: This method is so ugly, but it works and was suggested in #modding-dev. I have no reason to argue with it.
+                return {
+                    mult = card.ability.extra.mult
+                }
+            end
         end
     end
+
 }
 
-
 --Paint Consumable Type
-SMODS.ConsumableType {
+SMODS.ConsumableType{
     key = 'paint',
     primary_colour = HEX("FF0000"),
     secondary_colour = HEX("FF0000"),
-    loc_txt = {
-        name = 'Paint',
-        collection = 'Paint Cards',
+loc_txt = {
+    name = 'Paint',
+    collection = 'Paint Cards',
     },
 }
 
 --Red Paint
-SMODS.Atlas {
+SMODS.Atlas{
     key = 'red_paint',
     path = 'redpaint.png',
     px = 71,
     py = 95
 }
-SMODS.Consumable {
+
+SMODS.Consumable{
     key = 'red_paint',
     set = 'paint',
     loc_txt = {
         name = 'Red Paint Bucket',
         text = {
-            'Give 2 cards {C:red}red{} enhancement'
+            'Gives 2 selected cards the {V:1}Red{} enhancement.'
         }
     },
-    cost = 3,
-    discovered = true,
-    atlas = 'red_paint',
-    pos = { x = 0, y = 0 },
+        cost = 3,
+        discovered = true,
+        atlas = 'red_paint',
+    pos = {x = 0, y = 0},
     config = { max_highlighted = 2, mod_conv = 'm_colr_red' },
-    loc_vars = function(self, info_queue, card)
-        info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
-    end
+	loc_vars = function(self, info_queue, card)
+		info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
+        return {
+            vars = {
+                colours = { HEX('FF0000') }
+            }
+        }
+	end
 }
 
 --Orange Paint
-SMODS.Atlas {
+SMODS.Atlas{
     key = 'orange_paint',
     path = 'orangepaint.png',
     px = 71,
     py = 95
 }
-SMODS.Consumable {
+SMODS.Consumable{
     key = 'orange_paint',
     set = 'paint',
     loc_txt = {
         name = 'Orange Paint Bucket',
         text = {
-            'Give 1 card {C:attention}orange{} enhancement'
+            'Gives 2 selected cards the {V:1}Orange{} enhancement.'
         }
     },
-    cost = 3,
-    discovered = true,
-    atlas = 'orange_paint',
-    config = { max_highlighted = 1, mod_conv = 'm_colr_orange' },
-    loc_vars = function(self, info_queue, card)
-        info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
-    end
+        cost = 3,
+        discovered = true,
+        atlas = 'orange_paint',
+        config = { max_highlighted = 2, mod_conv = 'm_colr_orange' },
+	loc_vars = function(self, info_queue, card)
+		info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
+        return {
+            vars = {
+                colours = { HEX('FFA500') }
+            }
+        }
+	end
 }
 
 --Yellow Paint
-SMODS.Atlas {
+SMODS.Atlas{
     key = 'yellow_paint',
     path = 'yellowpaint.png',
     px = 71,
     py = 95
 }
-SMODS.Consumable {
+SMODS.Consumable{
     key = 'yellow_paint',
     set = 'paint',
     loc_txt = {
         name = 'Yellow Paint Bucket',
         text = {
-            'Give 2 cards {C:gold}yellow{} enhancement'
+            'Gives 2 selected cards the {V:1}Yellow{} enhancement.'
         }
     },
-    cost = 3,
-    discovered = true,
-    atlas = 'yellow_paint',
-    config = { max_highlighted = 2, mod_conv = 'm_colr_yellow' },
-    loc_vars = function(self, info_queue, card)
-        info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
-    end
+        cost = 3,
+        discovered = true,
+        atlas = 'yellow_paint',
+        config = { max_highlighted = 2, mod_conv = 'm_colr_yellow' },
+	loc_vars = function(self, info_queue, card)
+		info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
+        return {
+            vars = {
+                colours = { HEX('EFCC00') }
+            }
+        }
+	end
 }
 
 --Green Paint
-SMODS.Atlas {
+SMODS.Atlas{
     key = 'green_paint',
     path = 'greenpaint.png',
     px = 71,
     py = 95
 }
-SMODS.Consumable {
+SMODS.Consumable{
     key = 'green_paint',
     set = 'paint',
     loc_txt = {
         name = 'Green Paint Bucket',
         text = {
-            'Give 2 cards {C:green}green{} enhancement'
+            'Gives 2 selected cards the {V:1}Green{} enhancement.'
         }
     },
-    cost = 3,
-    discovered = true,
-    atlas = 'green_paint',
-    config = { max_highlighted = 2, mod_conv = 'm_colr_green' },
-    loc_vars = function(self, info_queue, card)
-        info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
-    end
+        cost = 3,
+        discovered = true,
+        atlas = 'green_paint',
+        config = { max_highlighted = 2, mod_conv = 'm_colr_green' },
+	loc_vars = function(self, info_queue, card)
+		info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
+        return {
+            vars = {
+                colours = { HEX('00FF00') }
+            }
+        }
+	end
 }
 
 --Blue Paint
-SMODS.Atlas {
+SMODS.Atlas{
     key = 'blue_paint',
     path = 'bluepaint.png',
     px = 71,
     py = 95
 }
-SMODS.Consumable {
+SMODS.Consumable{
     key = 'blue_paint',
     set = 'paint',
     loc_txt = {
         name = 'Blue Paint Bucket',
         text = {
-            'Give 2 cards {C:blue}blue{} enhancement'
+            'Gives 2 selected cards the {V:1}Blue{} enhancement.'
         }
     },
-    cost = 3,
-    discovered = true,
-    atlas = 'blue_paint',
-    config = { max_highlighted = 2, mod_conv = 'm_colr_blue' },
-    loc_vars = function(self, info_queue, card)
-        info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
-    end
+        cost = 3,
+        discovered = true,
+        atlas = 'blue_paint',
+        config = { max_highlighted = 2, mod_conv = 'm_colr_blue' },
+	loc_vars = function(self, info_queue, card)
+		info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
+        return {
+            vars = {
+                colours = { HEX('0000FF') }
+            }
+        }
+	end
 }
 
 --Purple Paint
-SMODS.Atlas {
+SMODS.Atlas{
     key = 'purple_paint',
     path = 'purplepaint.png',
     px = 71,
     py = 95
 }
-SMODS.Consumable {
+SMODS.Consumable{
     key = 'purple_paint',
     set = 'paint',
     loc_txt = {
         name = 'Purple Paint Bucket',
         text = {
-            'Give 2 cards {C:purple}purple{} enhancement'
+            'Gives 2 selected cards the {V:1}Purple{} enhancement.'
         }
     },
-    cost = 3,
-    discovered = true,
-    atlas = 'purple_paint',
-    config = { max_highlighted = 2, mod_conv = 'm_colr_purple' },
-    loc_vars = function(self, info_queue, card)
-        info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
-    end
+        cost = 3,
+        discovered = true,
+        atlas = 'purple_paint',
+        config = { max_highlighted = 2, mod_conv = 'm_colr_purple' },
+	loc_vars = function(self, info_queue, card)
+		info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
+        return {
+            vars = {
+                colours = { HEX('7800FF') }
+            }
+        }
+	end
 }
 
---Pink Paint
-SMODS.Atlas {
-    key = 'pink_paint',
-    path = 'pinkpaint.png',
-    px = 71,
-    py = 95
-}
-SMODS.Consumable {
-    key = 'pink_paint',
-    set = 'paint',
+-- Pink Enhancement
+SMODS.Enhancement {
+    key = 'pink',
     loc_txt = {
-        name = 'Pink Paint Bucket',
+        name = 'Pink',
         text = {
-            'Give 2 cards {C:legendary}pink{} enhancement'
+            '{X:mult,C:white}X2{} {C:mult}Mult{} and {X:chips,C:white}X2{} {C:chips}Chips{},',
+            'but only on a {C:attention}Boss Blind{}'
         }
     },
-    cost = 3,
-    discovered = true,
-    atlas = 'pink_paint',
-    config = { max_highlighted = 2, mod_conv = 'm_colr_pink' },
+    atlas = 'colors',
+    pos = { x = 0, y = 2 },
+    config = {
+       extra = {
+        x_chips = 2,
+        x_mult = 2
+       },
+    },
     loc_vars = function(self, info_queue, card)
-        info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
+        return { vars = { card.ability.x_chips, card.ability.x_mult } }
+    end,
+    calculate = function(self, card, context)
+        if context.main_scoring and context.cardarea == G.play and G.GAME.blind.boss then
+            return { xchips = card.ability.extra.x_chips, xmult = card.ability.extra.x_mult }
+        end
     end
 }
 
---Black Paint
-SMODS.Atlas {
+-- Black Paint
+SMODS.Atlas{
     key = 'black_paint',
     path = 'blackpaint.png',
     px = 71,
     py = 95
 }
-SMODS.Consumable {
+SMODS.Consumable{
     key = 'black_paint',
     set = 'paint',
     loc_txt = {
         name = 'Black Paint Bucket',
         text = {
-            'Give 2 cards {C:dark_edition}black{} enhancement'
+            'Gives 2 cards the {C:black}Black{} enhancement.'
         }
     },
-    cost = 3,
-    discovered = true,
-    atlas = 'black_paint',
-    config = { max_highlighted = 2, mod_conv = 'm_colr_black' },
-    loc_vars = function(self, info_queue, card)
-        info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
-    end
+        cost = 3,
+        discovered = true,
+        atlas = 'black_paint',
+        config = { max_highlighted = 2, mod_conv = 'm_colr_black' },
+	loc_vars = function(self, info_queue, card)
+		info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
+	end
 }
 
---Brown Paint
-SMODS.Atlas {
+-- Brown Paint
+SMODS.Atlas{
     key = 'brown_paint',
     path = 'brownpaint.png',
     px = 71,
     py = 95
 }
-SMODS.Consumable {
+SMODS.Consumable{
     key = 'brown_paint',
     set = 'paint',
     loc_txt = {
         name = 'Brown Paint Bucket',
         text = {
-            'Give 2 cards {C:diamonds}brown{} enhancement'
+            'Gives 2 selected cards the {V:1}Brown{} enhancement.'
         }
     },
-    cost = 3,
-    discovered = true,
-    atlas = 'brown_paint',
-    config = { max_highlighted = 2, mod_conv = 'm_colr_brown' },
-    loc_vars = function(self, info_queue, card)
-        info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
-    end
+        cost = 3,
+        discovered = true,
+        atlas = 'brown_paint',
+        config = { max_highlighted = 2, mod_conv = 'm_colr_brown' },
+	loc_vars = function(self, info_queue, card)
+		info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
+        return {
+            vars = {
+                colours = { HEX('964B00') }
+            }
+        }
+	end
 }
 
---Random Paint Buckets
-SMODS.Atlas {
-    key = 'randompaint1',
-    path = 'randompaint1.png',
+-- Black Paint
+SMODS.Atlas{
+    key = 'black_paint',
+    path = 'blackpaint.png',
     px = 71,
     py = 95
 }
-SMODS.Booster {
-    key = 'randompaint1',
+SMODS.Consumable{
+    key = 'black_paint',
+    set = 'paint',
     loc_txt = {
-        name = 'Random Paint',
-        group_name = 'Random Paint',
+        name = 'Black Paint Bucket',
         text = {
-            'Choose {C:attention}1{} of up to {C:attention}2{}',
-            '{C:red}paint{} cards to be',
-            'used immediately'
-        },
+            'Gives 2 selected cards the {V:1}Black{} enhancement.'
+        }
     },
-    config = { extra = 2, choose = 1 },
-    draw_hand = true,
-    atlas = 'randompaint1',
-    pos = { x = 0, y = 0 },
-    create_card = function(self, card)
-        return SMODS.create_card({ area = G.pack_cards, no_edition = true, skip_materialize = true, set = "paint" })
-    end,
-    weight = 2,
-    cost = 4,
-    group_key = 'grouprandompaint'
+        cost = 3,
+        discovered = true,
+        atlas = 'black_paint',
+        config = { max_highlighted = 2, mod_conv = 'm_colr_black' },
+	loc_vars = function(self, info_queue, card)
+		info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
+        return {
+            vars = {
+                colours = { HEX('000000') }
+            }
+        }
+	end
 }
 
-SMODS.Atlas {
-    key = 'randompaint2',
-    path = 'randompaint2.png',
+-- Pink Paint
+SMODS.Atlas{
+    key = 'pink_paint',
+    path = 'pinkpaint.png',
     px = 71,
     py = 95
 }
-SMODS.Booster {
-    key = 'randompaint2',
+
+SMODS.Consumable{
+    key = 'pink_paint',
+    set = 'paint',
     loc_txt = {
-        name = 'Random Paint',
-        group_name = 'Random Paint',
+        name = 'Pink Paint Bucket',
         text = {
-            'Choose {C:attention}1{} of up to {C:attention}2{}',
-            '{C:red}paint{} cards to be',
-            'used immediately'
+            'Gives 2 selected cards the {V:1}Pink{} enhancement.'
+        }
+    },
+        cost = 3,
+        discovered = true,
+        atlas = 'pink_paint',
+        config = { max_highlighted = 2, mod_conv = 'm_colr_pink' },
+	loc_vars = function(self, info_queue, card)
+		info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
+        return {
+            vars = {
+                colours = { HEX('FF00FF') }
+            }
+        }
+	end
+}
+
+
+--Random Paint Bucket
+SMODS.Atlas{
+    key = 'randompaint',
+    path = 'randompaint.png',
+    px = 71,
+    py = 95
+}
+
+SMODS.Booster{
+    key = 'randompaint',
+    loc_txt = {
+        name = 'Random Paint Pack',
+        group_name = "Random Paint Buckets", -- Arya: Genuinely, I do not know why this doesn't work. Curse you, John SMODS.
+        text = {
+            'Choose {C:attention}1{} of up to {C:attention}3{}',
+            '{C:attention}Paint Buckets{} to be',
+            'used immediately.'
         },
     },
-    config = { extra = 2, choose = 1 },
+    config = {extra = 3, choose = 1},
     draw_hand = true,
-    atlas = 'randompaint2',
+    atlas = 'randompaint',
     pos = { x = 0, y = 0 },
     create_card = function(self, card)
-        return SMODS.create_card({ area = G.pack_cards, no_edition = true, skip_materialize = true, set = "paint" })
+        return SMODS.create_card({area = G.pack_cards, no_edition = true, skip_materialize = true, set = "paint"})
     end,
-    weight = 2,
+    weight = 1,
     cost = 4,
-    group_key = 'grouprandompaint'
-}
-SMODS.Atlas {
-    key = 'jrandompaint',
-    path = 'jumborandompaint.png',
-    px = 71,
-    py = 95
-}
-SMODS.Booster {
-    key = 'jrandompaint',
-    loc_txt = {
-        name = 'Jumbo Random Paint',
-        group_name = 'Random Paint',
-        text = {
-            'Choose {C:attention}1{} of up to {C:attention}4{}',
-            '{C:red}paint{} cards to be',
-            'used immediately'
-        },
-    },
-    config = { extra = 4, choose = 1 },
-    draw_hand = true,
-    atlas = 'jrandompaint',
-    pos = { x = 0, y = 0 },
-    create_card = function(self, card)
-        return SMODS.create_card({ area = G.pack_cards, no_edition = true, skip_materialize = true, set = "paint" })
-    end,
-    weight = 2,
-    cost = 6,
-    group_key = 'grouprandompaint'
-}
-SMODS.Atlas {
-    key = 'mrandompaint',
-    path = 'megarandompaint.png',
-    px = 71,
-    py = 95
-}
-SMODS.Booster {
-    key = 'mrandompaint',
-    loc_txt = {
-        name = 'Mega Random Paint',
-        group_name = 'Random Paint',
-        text = {
-            'Choose {C:attention}2{} of up to {C:attention}4{}',
-            '{C:red}paint{} cards to be',
-            'used immediately'
-        },
-    },
-    config = { extra = 4, choose = 2 },
-    draw_hand = true,
-    atlas = 'mrandompaint',
-    pos = { x = 0, y = 0 },
-    create_card = function(self, card)
-        return SMODS.create_card({ area = G.pack_cards, no_edition = true, skip_materialize = true, set = "paint" })
-    end,
-    weight = 0.5,
-    cost = 8,
     group_key = 'grouprandompaint'
 }
