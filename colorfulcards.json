@@ -6,12 +6,12 @@
   "author": [
     "Jimmy B", "FactWixard", "Wildcard Arya"
   ],
-  "description": "Adds many colors to the game that each do interesting things!",
+  "description": "Adds many colors to the game that each do interesting things! Now updated for 0711a and above!",
   "prefix": "colr",
   "main_file": "main.lua",
   "priority": 1,
-  "version": "2.1.0",
+  "version": "2.2.0",
   "dependencies": [
-    "Steamodded (>=1.0.0~BETA-0404a)"
+    "Steamodded (>=1.0.0~BETA-0711a)"
   ]
 }

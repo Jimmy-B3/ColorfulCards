@@ -1,10 +1,10 @@
--- Note to original developer: Keep the enhancements in one atlas texture. I promise, it will make life a lot easier and saves space.
--- Also, touched up the text a bit and added a warning for the Purple Enhancement.
+-- This is updated for 0711a using code from Wildcard Collection. 
+to_big = to_big or function(x) return x end -- Now you can play this WITHOUT Talisman!
 
 --the mod icon
 SMODS.Atlas{
     key = 'modicon',
-    path = 'zmodicon.png',
+    path = 'modicon.png',
     px = 34,
     py = 34
 }
@@ -21,9 +21,9 @@ SMODS.Atlas{
 SMODS.Joker{
     key = "test",
     loc_txt = {
-        name = 'TEST',
+        name = 'Horse.',
         text = {
-            'this is just a joker for testing'
+            "A random horse. Maybe it does something..."
         }
     },
         rarity = 4,
@@ -36,7 +36,7 @@ SMODS.Joker{
     pos = {x = 0, y = 0},
     config = { 
         extra = {
-        Xmult = 2
+            Xmult = 2
         }
     },
 }
@@ -106,7 +106,7 @@ atlas = 'colors',
 	calculate = function(self, card, context)
 		if context.main_scoring and context.cardarea == G.play then
 			return {
-                  dollars = ((G.GAME.dollars * card.ability.extra.dollars) - G.GAME.dollars)
+                  dollars = lenient_bignum((G.GAME.dollars * card.ability.extra.dollars) - G.GAME.dollars)
       }
 		end
 	end
@@ -118,7 +118,7 @@ SMODS.Enhancement{
  loc_txt = {
     name = 'Green',
     text = {
-        '{C:green}1 in 4{} chance to add',
+        '{C:green}1 in 4 chance{} to add',
         'a random card with',
         'an {C:attention}Edition{} to your deck.'
     }
@@ -127,12 +127,14 @@ atlas = 'colors',
 	pos = { x = 0, y = 1 },
 	config = { extra = { odds = 4 } },
 	loc_vars = function(self, info_queue, card)
-		return { vars = { G.GAME.probabilities.normal } }
+		-- return { vars = { G.GAME.probabilities.normal } }
+        local GreenIsNotACreativeColor, GreenIsACreativeColor = SMODS.get_probability_vars(card, 1, card.ability.extra.odds, 'greenProbCheck')
+        return {vars = {GreenIsNotACreativeColor, GreenIsACreativeColor } }
 	end,
 	calculate = function(self, card, context)
-		if context.main_scoring and context.cardarea == G.play and (pseudorandom('colr_green') < G.GAME.probabilities.normal / card.ability.extra.odds) then
+		if context.main_scoring and context.cardarea == G.play and SMODS.pseudorandom_probability(card, 'Green Card', 1, card.ability.extra.odds, 'greenProbCheck') then
 			local _card = create_playing_card ({
-				front = pseudorandom_element(G.P_CARDS, pseudoseed('colr_green')),
+				front = pseudorandom_element(G.P_CARDS, pseudoseed('colr_green')), -- Note to Arya: This is fine in 0711a. YIPPEE!
 				center = G.P_CENTERS.c_base
 			}, G.discard, true, nil, {G.C.SECONDARY_SET.Enhanced}, true)
 			_card:set_edition(poll_edition("colr_green", nil, nil, true))
@@ -248,7 +250,8 @@ SMODS.Enhancement {
         name = "Brown",
         text = {
             "Summons a random {C:tarot}Tarot{}",
-            "card when {C:attention}scored{}"
+            "card when {C:attention}scored{}",
+            "{C:inactive}Doesn't require room!{}"
         }
     },
     atlas = "colors",
@@ -260,6 +263,37 @@ SMODS.Enhancement {
     calculate = function(self, card, context)
         if context.main_scoring and context.cardarea == G.play then
             SMODS.add_card({set = "Tarot"})
+        end
+    end
+}
+
+-- Ivory Enhancement via Arya
+SMODS.Enhancement {
+    key = "ivory",
+    loc_txt = {
+        name = "Ivory",
+        text = {
+            "If applied on a {C:spades}Spade{} or {C:clubs}Club{} card: {C:chips}+30 Chips{}",
+            "If applied on a {C:hearts}Heart{} or {C:diamonds}Diamond{} card: {X:chips,C:white}x3{} {C:chips}Chips{}"
+        }
+    },
+    atlas = 'colors',
+    pos = { x = 0, y = 3},
+    loc_vars = function(self, info_queue, card)
+      return { vars = { card.ability.extra.chips, card.ability.extra.x_chips } }
+    end,
+    config = { extra = { chips = 30, x_chips = 3 } },
+    calculate = function(self, card, context)
+        if context.main_scoring and context.cardarea == G.play then
+            if card:is_suit("Clubs") or card:is_suit("Spades") then
+                return {
+                    chips = card.ability.extra.chips
+                }
+            else
+                return {
+                    x_chips = card.ability.extra.x_chips
+                }
+            end
         end
     end
 }
@@ -292,7 +326,7 @@ SMODS.Joker {
     end,
     calculate = function(self, card, context)
         if context.individual and context.cardarea == G.play then
-            if SMODS.has_enhancement(context.other_card, "m_colr_red") or SMODS.has_enhancement(context.other_card, "m_colr_orange") or SMODS.has_enhancement(context.other_card, "m_colr_yellow") or SMODS.has_enhancement(context.other_card, "m_colr_green") or SMODS.has_enhancement(context.other_card, "m_colr_blue") or SMODS.has_enhancement(context.other_card, "m_colr_purple") or SMODS.has_enhancement(context.other_card, "m_colr_pink") or SMODS.has_enhancement(context.other_card, "m_colr_black") or SMODS.has_enhancement(context.other_card, "m_colr_brown") then -- Arya: This method is so ugly, but it works and was suggested in #modding-dev. I have no reason to argue with it.
+            if SMODS.has_enhancement(context.other_card, "m_colr_red") or SMODS.has_enhancement(context.other_card, "m_colr_orange") or SMODS.has_enhancement(context.other_card, "m_colr_yellow") or SMODS.has_enhancement(context.other_card, "m_colr_green") or SMODS.has_enhancement(context.other_card, "m_colr_blue") or SMODS.has_enhancement(context.other_card, "m_colr_purple") or SMODS.has_enhancement(context.other_card, "m_colr_pink") or SMODS.has_enhancement(context.other_card, "m_colr_black") or SMODS.has_enhancement(context.other_card, "m_colr_brown") or SMODS.has_enhancement(context.other_card, "m_colr_ivory") then -- Arya: This method is so ugly, but it works and was suggested in #modding-dev. I have no reason to argue with it.
                 return {
                     mult = card.ability.extra.mult
                 }
@@ -307,9 +341,9 @@ SMODS.ConsumableType{
     key = 'paint',
     primary_colour = HEX("FF0000"),
     secondary_colour = HEX("FF0000"),
-loc_txt = {
-    name = 'Paint',
-    collection = 'Paint Cards',
+    loc_txt = {
+        name = 'Paint',
+        collection = 'Paint Cards',
     },
 }
 
@@ -585,6 +619,7 @@ SMODS.Atlas{
     px = 71,
     py = 95
 }
+
 SMODS.Consumable{
     key = 'black_paint',
     set = 'paint',
@@ -639,6 +674,36 @@ SMODS.Consumable{
 	end
 }
 
+-- Pink Paint
+SMODS.Atlas{
+    key = 'ivory_paint',
+    path = 'ivorypaint.png',
+    px = 71,
+    py = 95
+}
+
+SMODS.Consumable{
+    key = 'ivory_paint',
+    set = 'paint',
+    loc_txt = {
+        name = 'Ivory Paint Bucket',
+        text = {
+            'Gives 2 selected cards the {V:1}Ivory{} enhancement.'
+        }
+    },
+        cost = 3,
+        discovered = true,
+        atlas = 'ivory_paint',
+        config = { max_highlighted = 2, mod_conv = 'm_colr_ivory' },
+	loc_vars = function(self, info_queue, card)
+		info_queue[#info_queue + 1] = G.P_CENTERS[card.ability.mod_conv]
+        return {
+            vars = {
+                colours = { HEX('f2efde') }
+            }
+        }
+	end
+}
 
 --Random Paint Bucket
 SMODS.Atlas{
@@ -670,3 +735,6 @@ SMODS.Booster{
     cost = 4,
     group_key = 'grouprandompaint'
 }
+
+
+
