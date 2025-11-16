@@ -9,38 +9,6 @@ SMODS.Atlas{
     py = 34
 }
 
--- Jimmy-B3: test joker lol
--- Arya: I got no clue why we're keeping this, but I'm sure you got a reason. 
-SMODS.Atlas{
-    key = 'TestJoker',
-    path = 'testjoker.png',
-    px = 71,
-    py = 95
-}
-
-SMODS.Joker{
-    key = "test",
-    loc_txt = {
-        name = 'Horse.',
-        text = {
-            "A random horse. Maybe it does something..."
-        }
-    },
-        rarity = 4,
-        cost = -1,
-        blueprint_compat = false,
-        eternal_compat = false,
-        perishable_compat = false,
-        discovered = true,
-    atlas = 'TestJoker',
-    pos = {x = 0, y = 0},
-    config = { 
-        extra = {
-            Xmult = 2
-        }
-    },
-}
-
 --Red
 SMODS.Atlas{
     key = 'colors',
